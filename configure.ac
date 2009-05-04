@@ -4,6 +4,7 @@
 ##
 ##  Copyright (c) 1996, 97, 98, 99, 2000 Kunihiro Ishiguro <kunihiro@zebra.org>
 ##  Portions Copyright (c) 2003 Paul Jakma <paul@dishone.st>
+##  Portions Copyright (c) 2008 C.J. Adams-Collier <cjac@colliertech.org>
 ##
 ## $Id$
 AC_PREREQ(2.53)
@@ -23,7 +24,13 @@ AM_CONFIG_HEADER(config.h)
 
 dnl GNU awk is required for lib/memtype.h made by memtypes.awk.
 dnl BSD awk complains: awk: gensub doesn't support backreferences (subst "\1")
-AC_CHECK_PROG([GAWK],[gawk],[gawk],[/bin/false])
+AC_PROG_AWK
+AC_CHECK_PROG([GAWK],[gawk],[gawk])
+if test -z "$GAWK"
+then
+  AC_MSG_ERROR(["GNU awk is required for lib/memtype.h; must support backrefs"])
+fi
+
 AC_ARG_VAR([GAWK],[GNU AWK])
 
 dnl default is to match previous behavior
@@ -1242,14 +1249,48 @@ AC_CHECK_FUNC(__inet_ntop, AC_DEFINE(HAVE_INET_NTOP,,__inet_ntop))
 AC_CHECK_FUNC(__inet_pton, AC_DEFINE(HAVE_INET_PTON,,__inet_pton))
 AC_CHECK_FUNC(__inet_aton, AC_DEFINE(HAVE_INET_ATON,,__inet_aton))
 
-dnl ---------------------------
-dnl check system has GNU regexp
-dnl ---------------------------
+dnl ------------------------------
+dnl determine system regex library
+dnl ------------------------------
+AC_ARG_WITH([pcre],
+    [AS_HELP_STRING([--with-pcre],
+       [Whether to link against libpcre])],
+    [with_pcre="yes"],
+    [with_pcre="no"])
+
+if test "x$with_pcre" = "xyes"
+then
+
+  dnl AC_MSG_CHECKING(whether system has libpcre)
+  AC_CHECK_HEADER(pcre.h,
+    AC_CHECK_LIB(pcre, pcre_version, [have_pcre=yes ]),
+    [AC_CHECK_HEADER(pcre/pcre.h,
+      [AC_CHECK_LIB(pcre, pcre_version, [have_pcre=yes])]
+    )]
+  )
+fi
+
 dnl AC_MSG_CHECKING(whether system has GNU regex)
-AC_CHECK_LIB(c, regexec,
-[AC_DEFINE(HAVE_GNU_REGEX,,GNU regexp library)
- LIB_REGEX=""],
-[LIB_REGEX="regex.o"])
+AC_CHECK_LIB(c, regexec, [have_gnu_regex=yes ])
+
+if test "x$have_pcre" = "xyes"
+then
+  AC_DEFINE(HAVE_PCRE,,PCRE regex library)
+  LIB_REGEX="-lpcre -lpcreposix"
+  regex_lib="pcre"
+
+elif test "x$have_gnu_regex" = "xyes"
+then
+  AC_DEFINE(HAVE_GNU_REGEX,,GNU regexp library)
+  LIB_REGEX=""
+  regex_lib="gnu"
+
+else
+  LIB_REGEX="regex.o"
+  regex_lib="system"
+
+fi
+
 AC_SUBST(LIB_REGEX)
 
 dnl ------------------
@@ -1507,6 +1548,7 @@ source code location    : ${srcdir}
 compiler                : ${CC}
 compiler flags          : ${CFLAGS}
 make                    : ${MAKE-make}
+regex library           : ${regex_lib}
 includes                : ${INCLUDES} ${SNMP_INCLUDES}
 linker flags            : ${LDFLAGS} ${LIBS} ${LIBCAP} ${LIBREADLINE} ${LIBM}
 state file directory    : ${quagga_statedir}

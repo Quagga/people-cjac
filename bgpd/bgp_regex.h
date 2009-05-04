@@ -1,7 +1,8 @@
 /* AS regular expression routine
    Copyright (C) 1999 Kunihiro Ishiguro
+   Copyright (C) 2008 C.J. Adams-Collier <cjac@colliertech.org>
 
-This file is part of GNU Zebra.
+This file is part of Quagga.
 
 GNU Zebra is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
@@ -23,11 +24,16 @@ Software Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 
 #include <zebra.h>
 
-#ifdef HAVE_GNU_REGEX
-#include <regex.h>
+#ifdef HAVE_PCRE
+#  include <pcre.h>
+#  include <pcreposix.h>
 #else
-#include "regex-gnu.h"
-#endif /* HAVE_GNU_REGEX */
+#  ifdef HAVE_GNU_REGEX
+#    include <regex.h>
+#  else
+#    include "regex-gnu.h"
+#  endif /* HAFE_GNU_REGEX */
+#endif /* HAVE_PCRE */
 
 extern void bgp_regex_free (regex_t *regex);
 extern regex_t *bgp_regcomp (const char *str);

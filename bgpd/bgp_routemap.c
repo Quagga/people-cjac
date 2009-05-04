@@ -1,7 +1,8 @@
 /* Route map function of bgpd.
    Copyright (C) 1998, 1999 Kunihiro Ishiguro
+   Copyright (C) 2008 C.J. Adams-Collier <cjac@colliertech.org>
 
-This file is part of GNU Zebra.
+This file is part of Quagga.
 
 GNU Zebra is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
@@ -28,11 +29,16 @@ Software Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 #include "plist.h"
 #include "memory.h"
 #include "log.h"
-#ifdef HAVE_GNU_REGEX
-#include <regex.h>
+#ifdef HAVE_PCRE
+#  include <pcre.h>
+#  include <pcreposix.h>
 #else
-#include "regex-gnu.h"
-#endif /* HAVE_GNU_REGEX */
+#  ifdef HAVE_GNU_REGEX
+#    include <regex.h>
+#  else
+#    include "regex-gnu.h"
+#  endif /* HAFE_GNU_REGEX */
+#endif /* HAVE_PCRE */
 #include "buffer.h"
 #include "sockunion.h"
 
